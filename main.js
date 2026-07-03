@@ -202,10 +202,82 @@
         return;
       }
 
+      // Detect whether a comparison dimension is bound on any row
+      var hasComparisonDim = rows.some(function (row) { return !!row.comparisonDimension_0; });
+
+      if (!hasComparisonDim) {
+        this._handleSimpleData(rows);
+        return;
+      }
+
+      // Group rows by the comparison dimension member (e.g. Fiscal Year)
+      var buckets = {}; // { memberLabel: { total: number, byCategory: { name: value } } }
+      var order = [];
+
+      rows.forEach(function (row) {
+        if (!row.measures_0 || !row.comparisonDimension_0) return;
+        var member = row.comparisonDimension_0.label;
+        var memberId = row.comparisonDimension_0.id != null ? row.comparisonDimension_0.id : member;
+        var categoryName = row.dimensions_0 ? row.dimensions_0.label : "Item";
+        var value = Number(row.measures_0.raw) || 0;
+
+        if (!buckets[member]) {
+          buckets[member] = { total: 0, byCategory: {}, sortKey: memberId };
+          order.push(member);
+        }
+        buckets[member].total += value;
+        buckets[member].byCategory[categoryName] = (buckets[member].byCategory[categoryName] || 0) + value;
+      });
+
+      var members = Object.keys(buckets);
+      if (!members.length) {
+        this._handleSimpleData(rows);
+        return;
+      }
+
+      // Sort members to find the latest (current) vs the rest (previous).
+      // Try numeric/date-like sort first (e.g. "2026" > "2025"); fall back to string sort.
+      members.sort(function (a, b) {
+        var na = parseFloat(String(a).replace(/[^0-9.\-]/g, ""));
+        var nb = parseFloat(String(b).replace(/[^0-9.\-]/g, ""));
+        if (!isNaN(na) && !isNaN(nb) && na !== nb) return nb - na;
+        return String(b).localeCompare(String(a));
+      });
+
+      var currentMember = members[0];
+      var previousMember = members.length > 1 ? members[1] : null;
+
+      var currentBucket = buckets[currentMember];
+      var segments = Object.keys(currentBucket.byCategory).map(function (name) {
+        return { name: name, value: currentBucket.byCategory[name] };
+      });
+
+      if (!segments.length) {
+        this._handleSimpleData(rows);
+        return;
+      }
+
+      this._segments = segments;
+      this._kpiTotal = currentBucket.total;
+      this._hasRealData = true;
+
+      if (previousMember && buckets[previousMember].total !== 0) {
+        var diff = currentBucket.total - buckets[previousMember].total;
+        var pct = (diff / Math.abs(buckets[previousMember].total)) * 100;
+        this._variance = {
+          pct: pct,
+          diff: diff,
+          direction: pct > 0.05 ? "up" : (pct < -0.05 ? "down" : "flat")
+        };
+      } else {
+        this._variance = null;
+      }
+    }
+
+    // Fallback used when no comparison dimension is bound: plain breakdown, no variance.
+    _handleSimpleData(rows) {
       var segments = [];
       var total = 0;
-      var comparisonTotal = 0;
-      var hasComparison = false;
 
       rows.forEach(function (row, i) {
         if (!row.measures_0) return;
@@ -213,11 +285,6 @@
         var value = Number(row.measures_0.raw) || 0;
         total += value;
         segments.push({ name: name, value: value });
-
-        if (row.comparisonMeasure_0 && row.comparisonMeasure_0.raw !== null && row.comparisonMeasure_0.raw !== undefined) {
-          comparisonTotal += Number(row.comparisonMeasure_0.raw) || 0;
-          hasComparison = true;
-        }
       });
 
       if (!segments.length) {
@@ -228,22 +295,7 @@
       this._segments = segments;
       this._kpiTotal = total;
       this._hasRealData = true;
-
-      if (hasComparison) {
-        if (comparisonTotal === 0) {
-          this._variance = null;
-        } else {
-          var diff = total - comparisonTotal;
-          var pct = (diff / Math.abs(comparisonTotal)) * 100;
-          this._variance = {
-            pct: pct,
-            diff: diff,
-            direction: pct > 0.05 ? "up" : (pct < -0.05 ? "down" : "flat")
-          };
-        }
-      } else {
-        this._variance = null;
-      }
+      this._variance = null;
     }
 
     // ---- Internal: value formatting ----
