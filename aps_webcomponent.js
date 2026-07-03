@@ -17,8 +17,6 @@
     "</div>",
     "<label for=\"kpiLabel\">KPI label</label>",
     "<input id=\"kpiLabel\" type=\"text\" />",
-    "<label for=\"kpiValue\">KPI value</label>",
-    "<input id=\"kpiValue\" type=\"text\" />",
     "<label for=\"kpiDelta\">KPI delta / trend text</label>",
     "<input id=\"kpiDelta\" type=\"text\" />"
   ].join("\n");
@@ -30,14 +28,13 @@
       this._shadowRoot.appendChild(template.content.cloneNode(true));
       this._props = {
         kpiLabel: "Total revenue",
-        kpiValue: "$4.82M",
         kpiDelta: "up 8.3% vs last period"
       };
     }
 
     connectedCallback() {
       var self = this;
-      ["kpiLabel", "kpiValue", "kpiDelta"].forEach(function (key) {
+      ["kpiLabel", "kpiDelta"].forEach(function (key) {
         var input = self._shadowRoot.getElementById(key);
         input.value = self._props[key];
         input.addEventListener("change", function () {
@@ -53,7 +50,7 @@
 
     onCustomWidgetAfterUpdate() {
       var self = this;
-      ["kpiLabel", "kpiValue", "kpiDelta"].forEach(function (key) {
+      ["kpiLabel", "kpiDelta"].forEach(function (key) {
         var input = self._shadowRoot.getElementById(key);
         if (input) input.value = self._props[key];
       });
@@ -64,7 +61,6 @@
         detail: {
           properties: {
             kpiLabel: this._props.kpiLabel,
-            kpiValue: this._props.kpiValue,
             kpiDelta: this._props.kpiDelta
           }
         }
