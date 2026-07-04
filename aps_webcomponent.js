@@ -56,6 +56,16 @@
     "    <input id=\"fontColor\" type=\"color\" />",
     "  </div>",
     "</div>",
+    "<label for=\"titleColor\">Title color</label>",
+    "<input id=\"titleColor\" type=\"color\" />",
+
+    "<div class=\"section-title\">Style preset</div>",
+    "<label for=\"tilePreset\">Preset (overrides colors above when not \\\"None\\\")</label>",
+    "<select id=\"tilePreset\">",
+    "  <option value=\"none\">None (use manual colors)</option>",
+    "  <option value=\"kpiTile\">KPI Tile</option>",
+    "  <option value=\"kpiTileAccent\">KPI Tile - Accent</option>",
+    "</select>",
 
     "<div class=\"section-title\">Margin (px)</div>",
     "<div class=\"row2\">",
@@ -124,7 +134,7 @@
     "<input id=\"varianceNullColor\" type=\"color\" />"
   ].join("\n");
 
-  var FIELDS = ["kpiLabel", "kpiDelta", "valueScale", "decimalPlaces", "fontSize", "fontColor", "marginTop", "marginRight", "marginBottom", "marginLeft", "colorPalette", "varianceLabel", "varianceShowAs", "varianceDecimalPlaces", "varianceArrowStyle", "variancePositiveColor", "varianceNegativeColor", "varianceNullColor"];
+  var FIELDS = ["kpiLabel", "kpiDelta", "valueScale", "decimalPlaces", "fontSize", "fontColor", "titleColor", "tilePreset", "marginTop", "marginRight", "marginBottom", "marginLeft", "colorPalette", "varianceLabel", "varianceShowAs", "varianceDecimalPlaces", "varianceArrowStyle", "variancePositiveColor", "varianceNegativeColor", "varianceNullColor"];
 
   var DEFAULTS = {
     kpiLabel: "Total revenue",
@@ -133,6 +143,8 @@
     decimalPlaces: 1,
     fontSize: 28,
     fontColor: "#111111",
+    titleColor: "#666666",
+    tilePreset: "none",
     marginTop: 12,
     marginRight: 12,
     marginBottom: 12,
