@@ -5,34 +5,44 @@
   template.innerHTML = [
     "<style>",
     "  :host { display:block; width:100%; height:100%; font-family: '72', Arial, sans-serif; }",
-    "  .scene { width:100%; height:100%; perspective: 1000px; cursor:pointer; position:relative; }",
+    "  .scene { width:100%; height:100%; perspective: 1000px; cursor:pointer; position:relative;",
+    "    touch-action: manipulation; -webkit-tap-highlight-color: transparent; }",
     "  .flipper { position:relative; width:100%; height:100%; transition: transform 0.6s; transform-style: preserve-3d; }",
     "  .flipper.flipped { transform: rotateY(180deg); }",
     "  .face { position:absolute; top:0; left:0; width:100%; height:100%; backface-visibility: hidden; box-sizing:border-box;",
-    "    border:1px solid #ddd; border-radius:8px; background: var(--kfd-bg, #fff); display:flex; flex-direction:column;",
+    "    border: var(--kfd-border, 1px solid #ddd); border-top: var(--kfd-border-top, 1px solid #ddd);",
+    "    border-radius: var(--kfd-radius, 8px); background: var(--kfd-bg, #fff); display:flex; flex-direction:column;",
     "    align-items:center; justify-content:center;",
     "    padding: var(--kfd-mt, 12px) var(--kfd-mr, 12px) var(--kfd-mb, 12px) var(--kfd-ml, 12px); }",
     "  .back { transform: rotateY(180deg); }",
-    "  .kpi-label { font-size:13px; color:#666; margin:0 0 6px; text-align:center; }",
-    "  .kpi-value { font-size: var(--kfd-fs, 28px); font-weight:600; margin:0 0 4px; color: var(--kfd-fc, #111); }",
-    "  .kpi-delta { font-size:12px; margin:0; }",
-    "  .kpi-delta.up { color:#CBE894; }",
-    "  .kpi-delta.down { color:#C4644C; }",
-    "  .kpi-delta.flat { color:#777; }",
+    "  .kpi-label { font-size: var(--kfd-tfs, 13px); color: var(--kfd-tc, #666); margin:0 0 6px; text-align:center;",
+    "    max-width:100%; overflow-wrap:break-word; }",
+    "  .kpi-value { font-size: var(--kfd-fs, 28px); font-weight:600; margin:0 0 4px; color: var(--kfd-fc, #111);",
+    "    max-width:100%; overflow-wrap:break-word; text-align:center; }",
+    "  .kpi-delta { font-size:12px; margin:0; text-align:center; }",
+    "  .kpi-delta .v-value { font-weight:600; font-size: var(--kfd-vvfs, 12px); }",
+    "  .kpi-delta .v-title { font-weight:400; font-size: var(--kfd-vtfs, 12px); margin-left:4px; }",
     "  .kpi-hint { font-size:11px; color:#999; margin-top:10px; text-align:center; }",
-    "  .donut-title { font-size:13px; color:#666; margin:0 0 8px; text-align:center; }",
-    "  .legend { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; font-size:11px; color:#555; margin-top:8px; }",
+    "  .donut-title { font-size: var(--kfd-stfs, 13px); color: var(--kfd-stc, #666); margin:0 0 8px; text-align:center; }",
+    "  .legend { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; font-size: var(--kfd-svfs, 11px);",
+    "    color: var(--kfd-svc, #555); margin-top:8px; }",
     "  .legend span { display:flex; align-items:center; gap:4px; }",
-    "  .swatch { width:8px; height:8px; border-radius:2px; display:inline-block; }",
+    "  .swatch { width:8px; height:8px; border-radius:2px; display:inline-block; flex-shrink:0; }",
     "  .tooltip { position:absolute; background:#222; color:#fff; font-size:11px; padding:4px 8px; border-radius:4px;",
-    "    pointer-events:none; display:none; white-space:nowrap; z-index:10; }",
+    "    pointer-events:none; display:none; white-space:nowrap; z-index:10; max-width:90%; overflow:hidden; text-overflow:ellipsis; }",
+    "  :host(.kfd-compact) .kpi-value { font-size: 16px !important; }",
+    "  :host(.kfd-compact) .kpi-label { font-size: 10px !important; }",
+    "  :host(.kfd-compact) .kpi-hint { display:none; }",
+    "  :host(.kfd-compact) .face { padding: 6px !important; }",
+    "  :host(.kfd-compact) .donut-title { font-size: 10px !important; }",
+    "  :host(.kfd-compact) svg { width: 80px; height: 80px; }",
     "</style>",
     "<div class=\"scene\">",
     "  <div class=\"flipper\" id=\"flipper\">",
     "    <div class=\"face front\">",
     "      <p class=\"kpi-label\" id=\"kpiLabel\">Total revenue</p>",
     "      <p class=\"kpi-value\" id=\"kpiValue\">--</p>",
-    "      <p class=\"kpi-delta\" id=\"kpiDelta\">up 8.3% vs last period</p>",
+    "      <p class=\"kpi-delta\" id=\"kpiDelta\"><span class=\"v-value\" id=\"kpiDeltaValue\"></span><span class=\"v-title\" id=\"kpiDeltaTitle\"></span></p>",
     "      <p class=\"kpi-hint\" id=\"kpiHint\">Click for breakdown</p>",
     "    </div>",
     "    <div class=\"face back\">",
@@ -52,6 +62,40 @@
     mono: ["#1b1b1b", "#3d3d3d", "#5f5f5f", "#818181", "#a3a3a3", "#c5c5c5", "#2e2e2e", "#707070"]
   };
 
+  // Matches the reference "KPI Tile" CSS classes (sap-custom-chart-widget / number-chart-*)
+  var PRESETS = {
+    kpiTile: {
+      background: "#345957",
+      borderTop: "4px solid #FFD059",
+      radius: "6px",
+      valueColor: "#FFFFFF",
+      valueFontSize: 22,
+      titleColor: "#CBE894",
+      titleFontSize: 10,
+      secondaryTitleColor: "#CBE894",
+      secondaryTitleFontSize: 10,
+      secondaryValueColor: "#FFFFFF",
+      secondaryValueFontSize: 12,
+      varianceValueFontSize: 11,
+      varianceTitleFontSize: 9
+    },
+    kpiTileAccent: {
+      background: "#345957",
+      borderTop: "4px solid #FFD059",
+      radius: "6px",
+      valueColor: "#FFD059",
+      valueFontSize: 22,
+      titleColor: "#CBE894",
+      titleFontSize: 10,
+      secondaryTitleColor: "#CBE894",
+      secondaryTitleFontSize: 10,
+      secondaryValueColor: "#FFFFFF",
+      secondaryValueFontSize: 12,
+      varianceValueFontSize: 11,
+      varianceTitleFontSize: 9
+    }
+  };
+
   class KpiFlipDonutElement extends HTMLElement {
     constructor() {
       super();
@@ -64,6 +108,8 @@
         decimalPlaces: 1,
         fontSize: 28,
         fontColor: "#111111",
+        titleColor: "#666666",
+        tilePreset: "none",
         marginTop: 12,
         marginRight: 12,
         marginBottom: 12,
@@ -96,9 +142,20 @@
       this._applyStyleVars();
       this._redrawDonut();
       this._render();
+
+      var self = this;
+      if (typeof ResizeObserver !== "undefined") {
+        this._ro = new ResizeObserver(function (entries) {
+          var rect = entries[0].contentRect;
+          self.classList.toggle("kfd-compact", rect.width < 160 || rect.height < 110);
+        });
+        this._ro.observe(this);
+      }
     }
 
-    disconnectedCallback() {}
+    disconnectedCallback() {
+      if (this._ro) this._ro.disconnect();
+    }
 
     onCustomWidgetBeforeUpdate(changedProperties) {
       this._props = Object.assign({}, this._props, changedProperties);
@@ -139,6 +196,12 @@
 
     set fontColor(v) { this._props.fontColor = v; this._applyStyleVars(); }
     get fontColor() { return this._props.fontColor; }
+
+    set titleColor(v) { this._props.titleColor = v; this._applyStyleVars(); }
+    get titleColor() { return this._props.titleColor; }
+
+    set tilePreset(v) { this._props.tilePreset = v; this._applyStyleVars(); }
+    get tilePreset() { return this._props.tilePreset; }
 
     set marginTop(v) { this._props.marginTop = v; this._applyStyleVars(); }
     get marginTop() { return this._props.marginTop; }
@@ -333,8 +396,40 @@
 
     // ---- Internal: styling ----
     _applyStyleVars() {
-      this.style.setProperty("--kfd-fs", (this._props.fontSize || 28) + "px");
-      this.style.setProperty("--kfd-fc", this._props.fontColor || "#111111");
+      var preset = PRESETS[this._props.tilePreset];
+
+      if (preset) {
+        this.style.setProperty("--kfd-bg", preset.background);
+        this.style.setProperty("--kfd-border", "none");
+        this.style.setProperty("--kfd-border-top", preset.borderTop);
+        this.style.setProperty("--kfd-radius", preset.radius);
+        this.style.setProperty("--kfd-fs", preset.valueFontSize + "px");
+        this.style.setProperty("--kfd-fc", preset.valueColor);
+        this.style.setProperty("--kfd-tc", preset.titleColor);
+        this.style.setProperty("--kfd-tfs", preset.titleFontSize + "px");
+        this.style.setProperty("--kfd-stc", preset.secondaryTitleColor);
+        this.style.setProperty("--kfd-stfs", preset.secondaryTitleFontSize + "px");
+        this.style.setProperty("--kfd-svc", preset.secondaryValueColor);
+        this.style.setProperty("--kfd-svfs", preset.secondaryValueFontSize + "px");
+        this.style.setProperty("--kfd-vvfs", preset.varianceValueFontSize + "px");
+        this.style.setProperty("--kfd-vtfs", preset.varianceTitleFontSize + "px");
+      } else {
+        if (this._bgColor) this.style.setProperty("--kfd-bg", this._bgColor);
+        this.style.removeProperty("--kfd-border");
+        this.style.removeProperty("--kfd-border-top");
+        this.style.removeProperty("--kfd-radius");
+        this.style.setProperty("--kfd-fs", (this._props.fontSize || 28) + "px");
+        this.style.setProperty("--kfd-fc", this._props.fontColor || "#111111");
+        this.style.setProperty("--kfd-tc", this._props.titleColor || "#666666");
+        this.style.removeProperty("--kfd-tfs");
+        this.style.removeProperty("--kfd-stc");
+        this.style.removeProperty("--kfd-stfs");
+        this.style.removeProperty("--kfd-svc");
+        this.style.removeProperty("--kfd-svfs");
+        this.style.removeProperty("--kfd-vvfs");
+        this.style.removeProperty("--kfd-vtfs");
+      }
+
       this.style.setProperty("--kfd-mt", (this._props.marginTop != null ? this._props.marginTop : 12) + "px");
       this.style.setProperty("--kfd-mr", (this._props.marginRight != null ? this._props.marginRight : 12) + "px");
       this.style.setProperty("--kfd-mb", (this._props.marginBottom != null ? this._props.marginBottom : 12) + "px");
@@ -350,6 +445,8 @@
 
     _render() {
       var deltaEl = this._shadowRoot.getElementById("kpiDelta");
+      var deltaValueEl = this._shadowRoot.getElementById("kpiDeltaValue");
+      var deltaTitleEl = this._shadowRoot.getElementById("kpiDeltaTitle");
       this._shadowRoot.getElementById("kpiLabel").textContent = this._props.kpiLabel;
       this._shadowRoot.getElementById("kpiValue").textContent = this._formatValue(this._kpiTotal);
 
@@ -374,17 +471,17 @@
         else valueText = pctText;
 
         var label = this._props.varianceLabel || "vs comparison";
-        deltaEl.textContent = arrow + " " + valueText + " " + label;
+        deltaValueEl.textContent = arrow + " " + valueText;
+        deltaTitleEl.textContent = " " + label;
 
         var color = this._variance.direction === "up" ? (this._props.variancePositiveColor || "#CBE894")
           : this._variance.direction === "down" ? (this._props.varianceNegativeColor || "#C4644C")
           : (this._props.varianceNullColor || "#CBE894");
         deltaEl.style.color = color;
-        deltaEl.className = "kpi-delta";
       } else {
-        deltaEl.textContent = this._props.kpiDelta;
+        deltaValueEl.textContent = this._props.kpiDelta;
+        deltaTitleEl.textContent = "";
         deltaEl.style.color = "";
-        deltaEl.className = "kpi-delta";
       }
 
       this._shadowRoot.getElementById("kpiHint").textContent =
@@ -431,6 +528,19 @@
           tooltip.style.top = (e.clientY - rect.top + 8) + "px";
         });
         path.addEventListener("mouseleave", function () { tooltip.style.display = "none"; });
+        path.addEventListener("touchstart", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var touch = e.touches[0];
+          tooltip.style.display = "block";
+          var pct = total ? ((seg.value / total) * 100).toFixed(0) : 0;
+          tooltip.textContent = seg.name + ": " + pct + "% (" + self._formatValue(seg.value) + ")";
+          var rect = self._shadowRoot.host.getBoundingClientRect();
+          tooltip.style.left = (touch.clientX - rect.left + 8) + "px";
+          tooltip.style.top = (touch.clientY - rect.top + 8) + "px";
+          clearTimeout(self._tooltipTimer);
+          self._tooltipTimer = setTimeout(function () { tooltip.style.display = "none"; }, 2000);
+        }, { passive: false });
         svg.appendChild(path);
         startAngle = endAngle;
       });
