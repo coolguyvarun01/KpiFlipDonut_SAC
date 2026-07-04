@@ -1,5 +1,4 @@
 // KPI Flip Donut - Styling Panel (Additional Properties Sheet)
-// Developed by: Varun Malhotra
 (function () {
   var template = document.createElement("template");
   template.innerHTML = [
